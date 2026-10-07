@@ -49,3 +49,5 @@ Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.
 6- Pour le revert le déploiement à fait 38 secondes, c'était un pull. Du coup la correction était: version 2.0.0 à 1.0.0 et le deploiement revient a la version 1.0.0
 
 7-
+
+![Application taskflow dans Argo CD](docs/argocd-taskflow.jpg)
