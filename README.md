@@ -52,8 +52,6 @@ Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.
 
 ![Application taskflow dans Argo CD](docs/argocd-taskflow.jpg)
 
-
-
 # TaskFlow - observations du lab
 
 1.0.0 -> Blue-Green -> 1.1.0 -> Canary -> 2.0.0
@@ -62,25 +60,34 @@ Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.
 
 Après la PR blue-green, ArgoCD est Healthy et Synced. On a un Rollout à la place du Deployment, et deux services : taskflow et taskflow-preview. 4 pods en 1.0.0.
 
-Après la PR en 1.1.0, un deuxième ReplicaSet apparait avec 4 pods. Les 4 anciens restent là, donc on a 8 pods en tout. Le rollout est en Paused, il attend le promote.
+2 Après la PR en 1.1.0, un deuxième ReplicaSet apparait avec 4 pods. Les 4 anciens restent là, donc on a 8 pods en tout. Le rollout est en Paused, il attend le promote.
+Du coup il faut taper cette commande pour le promote: kubectl argo rollouts promote taskflow -n taskflow
 
 observe.sh avant promote :
-- taskflow : (à coller)
-- taskflow-preview : (à coller)
 
-observe.sh après promote : (à coller)
+- taskflow : image dans apps. Observartion on est à la vesion actuelle
+- taskflow-preview : image dans apps. Observartion on est à la vesion suivante (attendu)
+  /scripts/observe.sh
+  40 version=1.0.0 http=200
+
+observe.sh après promote : image dans apps
+./scripts/observe.sh taskflow-preview
+40 version=1.1.0 http=200
 
 Ce qu'on retient : la nouvelle version tourne à côté sans recevoir de trafic, on peut la tester sur preview, et le promote bascule tout d'un coup.
 
 ## B. Canary
 
-PR en 2.0.0, le rollout se met en pause à l'étape 1/6 avec un poids de 25.
+PR en 2.0.0, le rollout se met en pause à l'étape 1/6 avec un pods de 25.
 
 - stable 1.1.0 : 3 pods
 - canary 2.0.0 : 1 pod
 - total : 4 pods, pas 8 comme en blue-green
 
 observe.sh :
+./scripts/observe.sh
+33 version=1.1.0 http=200
+7 version=2.0.0 http=200
 
 ```
 33 version=1.1.0 http=200
@@ -89,11 +96,17 @@ observe.sh :
 
 7 requêtes sur 40 vont sur la 2.0.0, soit environ 17 %. C'est un peu moins que 25 % mais sur 40 requêtes c'est normal, la répartition se fait juste par le nombre de pods (1 sur 4). Que des 200, pas d'erreur.
 
-Promote jusqu'à 100 % : (à compléter)
+reponse 4: ./scripts/observe.sh taskflow
+32 version=2.0.0 http=200
+5 version=2.1.0 http=200
+3 version=aucune http=500
+Promote jusqu'à 100 % : image dans apps
 
-PR en 2.1.0, codes HTTP : (à compléter)
+PR en 2.1.0, codes HTTP : image dans apps
+le déploiement se fait progressivement parce on fait des pauses de 60s et après il faut taper la commande pour faire le full promote
 
-Abort et après : (à compléter)
+Abort et après : image dans apps
+Après le "Abort" on a l'état de Argocd en Degraded parce que on a arbort à la main via la commande "kubectl argo rollouts abort taskflow -n taskflow". Sachant Argocd pull les informations de git de la branche main et la version sur git reste sur la 2.1.0 par la PR qu'on avait ouverte, d'où le degraded dans Argocd
 
 ## Blue-Green ou Canary pour TaskFlow ?
 
