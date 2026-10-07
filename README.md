@@ -49,5 +49,7 @@ Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.
 6- Pour le revert le déploiement à fait 38 secondes, c'était un pull. Du coup la correction était: version 2.0.0 à 1.0.0 et le deploiement revient a la version 1.0.0
 
 7-
+Après le merge de la PR #2, l'application est **Healthy** et **Synced** sur `main`. Argo CD a déployé tout seul (auto sync) le nouveau ReplicaSet
+(rev 2) fait tourner les 4 pods, l'ancien (rev 1) est vide.
 
 ![Application taskflow dans Argo CD](docs/argocd-taskflow.jpg)
