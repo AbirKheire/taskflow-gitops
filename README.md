@@ -21,15 +21,15 @@ Il peut être relancé sans risque.
 
 ## Structure
 
-| Chemin | Rôle |
-| --- | --- |
-| `apps/taskflow/` | Les manifests surveillés par Argo CD |
-| `argocd/application.yaml` | Déclare l'application dans Argo CD |
-| `exemples/bluegreen/` | Manifests pour le déploiement Blue-Green |
-| `exemples/canary/` | Manifests pour le déploiement Canary |
-| `scripts/install.sh` | Installation de l'environnement |
-| `scripts/argocd-ui.sh` | Ouvre l'interface d'Argo CD |
-| `scripts/observe.sh` | Montre quelle version répond, et avec quel code HTTP |
+| Chemin                    | Rôle                                                 |
+| ------------------------- | ---------------------------------------------------- |
+| `apps/taskflow/`          | Les manifests surveillés par Argo CD                 |
+| `argocd/application.yaml` | Déclare l'application dans Argo CD                   |
+| `exemples/bluegreen/`     | Manifests pour le déploiement Blue-Green             |
+| `exemples/canary/`        | Manifests pour le déploiement Canary                 |
+| `scripts/install.sh`      | Installation de l'environnement                      |
+| `scripts/argocd-ui.sh`    | Ouvre l'interface d'Argo CD                          |
+| `scripts/observe.sh`      | Montre quelle version répond, et avec quel code HTTP |
 
 ## Images disponibles
 
@@ -37,5 +37,6 @@ Il peut être relancé sans risque.
 
 ## Équipe
 
-<!-- Noms du binôme -->
+<!-- Fatoumata Naen Bah  & Abir K -->
+
 - À compléter
