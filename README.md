@@ -51,3 +51,56 @@ Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.
 7-
 
 ![Application taskflow dans Argo CD](docs/argocd-taskflow.jpg)
+
+
+
+# TaskFlow - observations du lab
+
+1.0.0 -> Blue-Green -> 1.1.0 -> Canary -> 2.0.0
+
+## A. Blue-Green
+
+Après la PR blue-green, ArgoCD est Healthy et Synced. On a un Rollout à la place du Deployment, et deux services : taskflow et taskflow-preview. 4 pods en 1.0.0.
+
+Après la PR en 1.1.0, un deuxième ReplicaSet apparait avec 4 pods. Les 4 anciens restent là, donc on a 8 pods en tout. Le rollout est en Paused, il attend le promote.
+
+observe.sh avant promote :
+- taskflow : (à coller)
+- taskflow-preview : (à coller)
+
+observe.sh après promote : (à coller)
+
+Ce qu'on retient : la nouvelle version tourne à côté sans recevoir de trafic, on peut la tester sur preview, et le promote bascule tout d'un coup.
+
+## B. Canary
+
+PR en 2.0.0, le rollout se met en pause à l'étape 1/6 avec un poids de 25.
+
+- stable 1.1.0 : 3 pods
+- canary 2.0.0 : 1 pod
+- total : 4 pods, pas 8 comme en blue-green
+
+observe.sh :
+
+```
+33 version=1.1.0 http=200
+ 7 version=2.0.0 http=200
+```
+
+7 requêtes sur 40 vont sur la 2.0.0, soit environ 17 %. C'est un peu moins que 25 % mais sur 40 requêtes c'est normal, la répartition se fait juste par le nombre de pods (1 sur 4). Que des 200, pas d'erreur.
+
+Promote jusqu'à 100 % : (à compléter)
+
+PR en 2.1.0, codes HTTP : (à compléter)
+
+Abort et après : (à compléter)
+
+## Blue-Green ou Canary pour TaskFlow ?
+
+On choisit Canary.
+
+Risque : en canary, si la version est cassée, seulement une partie des utilisateurs la voit et on peut abort. En blue-green, tout le monde passe sur la nouvelle version d'un coup, donc si on a mal testé sur preview, tout le monde est touché.
+
+Coût : blue-green demande le double de pods pendant le déploiement (8 au lieu de 4). Canary reste à 4.
+
+Le défaut du canary : c'est plus long, et les deux versions tournent en même temps pour de vrais utilisateurs. Si elles ne sont pas compatibles entre elles, blue-green est plus adapté.
