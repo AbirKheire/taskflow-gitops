@@ -39,4 +39,13 @@ Il peut être relancé sans risque.
 
 <!-- Fatoumata Naen Bah  & Abir K -->
 
-- À compléter
+4 - Lors du changement de version le déploiement sur Argocd a pris 45 secondes
+C'est un toujours un pull, parce que Argocd recupère la version sur la branche main du repo "AbirKheire/taskflow-gitops"
+La version de l'image est passée de 1.0.0 sur 2.0.0
+Le git revert dans le cas de cette PR fermée permet de revenir à la version 1.0.0
+
+5- Argo CD vérifie la branch main et voit que ce n'est pas les même version et va les annuler tout seul et revenir à 4 réplicas de l’image 2.0.0, parce qu'on l'a fait à la main.
+
+6- Pour le revert le déploiement à fait 38 secondes, c'était un pull. Du coup la correction était: version 2.0.0 à 1.0.0 et le deploiement revient a la version 1.0.0
+
+7-
