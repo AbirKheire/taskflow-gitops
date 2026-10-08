@@ -45,12 +45,12 @@ spec:
       canaryService: taskflow-canary
       steps:
         - setWeight: 25
-#        - analysis:
-#            templates:
-#              - templateName: robustesse-k6
-#            args:
-#              - name: cible
-#                value: http://taskflow-canary
+       - analysis:
+           templates:
+             - templateName: robustesse-k6
+           args:
+             - name: cible
+               value: http://taskflow-canary
         - setWeight: 50
         - pause:
             duration: 30s
