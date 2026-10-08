@@ -18,6 +18,8 @@ spec:
       labels:
         app: taskflow
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: taskflow
           image: ghcr.io/9m7fjfpv9k-cyber/taskflow:2.2.0
@@ -46,14 +48,14 @@ spec:
       steps:
         - setWeight: 25
         - analysis:
-           templates:
-             - templateName: robustesse-k6
-           args:
-             - name: cible
-               value: http://taskflow-canary
+            templates:
+              - templateName: robustesse-k6
+            args:
+              - name: cible
+                value: http://taskflow-canary
         - setWeight: 50
         - pause:
             duration: 30s
         - setWeight: 75
         - pause:
-            duration: 30s
+            duration: 30s 
