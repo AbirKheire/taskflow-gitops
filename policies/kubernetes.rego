@@ -34,21 +34,20 @@ deny contains msg if {
 	msg := sprintf("PSSI-R2 : l'image du conteneur '%s' ne vient pas du registre autorisé (%s)", [c.name, c.image])
 }
 
-# PSSI-R3
+# PSSI-R3 : chaque conteneur a une limite de mémoire.
 deny contains msg if {
 	some c in conteneurs
 	not c.resources.limits.memory
-	msg := sprintf("PSSI-R3 : le conteneur '%s' n'a pas de limite mémoire", [c.name])
+	msg := sprintf("PSSI-R3 : le conteneur '%s' n'a pas de limite de mémoire (resources.limits.memory)", [c.name])
 }
 
-# PSSI-R4
+# PSSI-R4 : le pod ne tourne jamais en root.
 pod_non_root if {
-	charges_de_travail[input.kind]
 	input.spec.template.spec.securityContext.runAsNonRoot == true
 }
 
 deny contains msg if {
 	charges_de_travail[input.kind]
 	not pod_non_root
-	msg := sprintf("PSSI-R4 : le %s '%s' ne force pas runAsNonRoot", [input.kind, input.metadata.name])
+	msg := sprintf("PSSI-R4 : le pod de '%s' ne déclare pas securityContext.runAsNonRoot: true", [input.metadata.name])
 }
