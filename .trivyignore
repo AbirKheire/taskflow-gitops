@@ -1,0 +1,13 @@
+# PSSI-R5 : exception jusqu'au 2026-10-31.
+# Image du cours ghcr.io/9m7fjfpv9k-cyber/taskflow:2.2.0.
+# starlette 0.41.3 et urllib3 1.26.20 ont des correctifs dans des versions plus récentes.
+# Nous ne publions pas cette image : exception limitée à la durée du lab.
+CVE-2025-62727 exp:2026-10-31
+CVE-2026-48818 exp:2026-10-31
+CVE-2026-54283 exp:2026-10-31
+CVE-2025-66418 exp:2026-10-31
+CVE-2025-66471 exp:2026-10-31
+CVE-2026-21441 exp:2026-10-31
+CVE-2026-44431 exp:2026-10-31
+CVE-2026-97687 exp:2026-10-31
+CVE-2026-97689 exp:2026-10-31
