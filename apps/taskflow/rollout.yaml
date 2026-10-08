@@ -45,7 +45,7 @@ spec:
       canaryService: taskflow-canary
       steps:
         - setWeight: 25
-       - analysis:
+        - analysis:
            templates:
              - templateName: robustesse-k6
            args:
