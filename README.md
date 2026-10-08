@@ -282,3 +282,102 @@ La veille, `observe.sh` montrait aussi des erreurs 500 dès que la `2.1.0` recev
 | Ne pas enlever l'analyse pour débloquer un revert | Binôme | Dès maintenant |
 | Vérifier les YAML et le script k6 avant de fusionner | Binôme | Dès maintenant |
 
+# Lab C La mini-PSSI en quality gates
+
+**L'idée :** les règles de sécurité de la PSSI sont écrites en code et vérifiées à chaque Pull Request. Une règle non respectée bloque le merge, sans qu'un humain ait à y penser.
+
+## 1. Les règles R3 et R4
+
+`conftest` lit nos manifests et leur applique les règles de `policies/kubernetes.rego`. Au départ, seules R1 et R2 existaient. On a écrit les deux suivantes :
+
+```rego
+# PSSI-R3
+deny contains msg if {
+	some c in conteneurs
+	not c.resources.limits.memory
+	msg := sprintf("PSSI-R3 : le conteneur '%s' n'a pas de limite mémoire", [c.name])
+}
+
+# PSSI-R4
+pod_non_root if {
+	charges_de_travail[input.kind]
+	input.spec.template.spec.securityContext.runAsNonRoot == true
+}
+
+deny contains msg if {
+	charges_de_travail[input.kind]
+	not pod_non_root
+	msg := sprintf("PSSI-R4 : le %s '%s' ne force pas runAsNonRoot", [input.kind, input.metadata.name])
+}
+```
+
+Dès que R4 existe, notre Rollout est refusé :
+
+![Échec sur R4](pssi-r4-echec.jpg)
+
+On ajoute alors au pod, dans `apps/taskflow/rollout.yaml` :
+
+```yaml
+      securityContext:
+        runAsNonRoot: true
+```
+
+![Tout passe](pssi-conftest-ok.png)
+
+## 2. Les quality gates dans la CI
+
+Le workflow `.github/workflows/pssi.yml` lance deux jobs sur chaque PR :
+
+| Job | Ce qu'il vérifie |
+| --- | --- |
+| PSSI manifests (conftest) | R1 à R4, sur les fichiers de `apps/` |
+| PSSI images (Trivy) | R5, sur les images `taskflow` déployées |
+
+Un ruleset GitHub rend ces deux jobs obligatoires sur `main`, avec une review. Tant qu'un job est rouge, le bouton de merge est grisé.
+
+## 3. La PR non conforme
+
+PR #30 : on remplace l'image par `nginx:latest`. Elle casse deux règles d'un coup, R1 (tag `latest`) et R2 (registre non autorisé).
+
+![conftest rouge sur la PR #30](pssi-pr30-conftest-rouge.jpg)
+
+![Merge bloqué](pssi-pr30-merge-bloque.png)
+
+Trivy est vert sur cette PR, mais ce n'est pas une bonne nouvelle : il ne scanne que les images de notre registre, donc ici il n'avait rien à scanner. C'est conftest qui arrête `nginx`.
+
+## 4. Trivy rouge
+
+Sur notre vraie image `taskflow:2.2.0`, Trivy trouve au moins une faille HIGH ou CRITICAL corrigeable. Les manifests sont conformes, mais l'image ne l'est pas.
+
+![Trivy rouge sur taskflow:2.2.0](pssi-trivy-rouge.png)
+
+On ne peut pas reconstruire l'image, donc on pose une exception écrite, justifiée et datée dans `.trivyignore`, comme l'exige la PSSI.
+
+## 5. Tableau règle → contrôle → outil → preuve
+
+| Règle | Contrôle | Outil | Preuve |
+| --- | --- | --- | --- |
+| R1 – tag explicite, jamais `latest` | Refus si l'image n'a pas de tag ou finit par `:latest` | conftest | PR #30 bloquée (`pssi-pr30-conftest-rouge.jpg`) |
+| R2 – registre autorisé | Refus si l'image ne vient pas de `ghcr.io/9m7fjfpv9k-cyber/` | conftest | PR #30 bloquée (même capture) |
+| R3 – limite mémoire | Refus si un conteneur n'a pas `resources.limits.memory` | conftest | 25 tests réussis (`pssi-conftest-ok.png`) |
+| R4 – jamais root | Refus si le pod n'a pas `runAsNonRoot: true` | conftest | Échec puis succès (`pssi-r4-echec.jpg`, `pssi-conftest-ok.png`) |
+| R5 – pas de faille HIGH ou CRITICAL corrigeable | Scan de l'image, échec s'il en reste une | Trivy | Job rouge sur `taskflow:2.2.0` (`pssi-trivy-rouge.png`) |
+| Blocage du merge | Les deux jobs sont obligatoires, plus une review | Ruleset GitHub | `pssi-pr30-merge-bloque.png` |
+
+## Ce qu'on retient
+
+- conftest vérifie ce qu'on **écrit** (les manifests), Trivy vérifie ce qu'on **livre** (le contenu de l'image). Il faut les deux.
+- Une règle qui n'est pas automatisée finit par être oubliée. Ici, c'est la PR qui la rappelle.
+- Une exception reste possible, mais elle est écrite, datée et relue en PR.
+
+---
+
+# Exercice — Qui trouve la faille de GET /tasks/search ?
+
+Les trois outils la trouvent, chacun pour une raison différente. C'est le sens de l'indice : le code est dans le dépôt (SAST), la route existe (DAST), elle a un test (IAST).
+
+| | La trouve ? | Quelle information ? | Quand ? | Limite ? |
+| --- | --- | --- | --- | --- |
+| **SAST** | Oui, parce que le code est dans le dépôt | Le fichier et la ligne où le paramètre de recherche est utilisé sans contrôle | Très tôt : à chaque commit ou PR, sans lancer l'application | Des faux positifs, et il ne dit pas si la faille est vraiment exploitable |
+| **DAST** | Oui, parce que la route existe et répond | L'URL, le paramètre et la requête qui fait réagir l'application. Pas la ligne de code. | Tard : sur l'application déployée (staging) | Ne teste que les routes qu'il découvre, il est lent et ne dit pas où corriger |
+| **IAST** | Oui, parce que la route a un test qui l'exécute | Les deux : la requête HTTP et la ligne de code, avec le trajet de la donnée | Pendant les tests, application lancée avec un agent | Ne voit que le code exécuté par les tests. Il faut un agent compatible avec le langage. |
